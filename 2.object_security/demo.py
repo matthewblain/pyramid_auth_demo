@@ -15,6 +15,7 @@ from pyramid.security import remember
 from pyramid.view import forbidden_view_config
 from pyramid.view import view_config
 
+class Group(object):
     """A 'group' object, which is *not* a string.
 
     This can be used as a principal which is not possible for a user to fake.
@@ -49,6 +50,7 @@ class User(object):
 class Page(object):
     @property
     def __acl__(self):
+        editorgroup = Group('editor')
         return [
             (Allow, self.owner, 'edit'),
             (Allow, editorgroup, 'edit'),
@@ -89,6 +91,7 @@ _make_demo_page('hello', owner='luser',
 ### MAP GROUPS TO PERMISSIONS
 class RootFactory(object):
     __acl__ = [
+        (Allow, Group('admin'), ALL_PERMISSIONS),
     ]
 
     def __init__(self, request):
@@ -96,6 +99,7 @@ class RootFactory(object):
 
 class UserFactory(object):
     __acl__ = [
+        (Allow, Group('admin'), ALL_PERMISSIONS),
     ]
 
     def __init__(self, request):
@@ -125,6 +129,7 @@ class PageFactory(object):
 def groupfinder(userid, request):
     user = USERS.get(userid)
     if user:
+        return [Group(g) for g in user.groups]
 
 ### DEFINE VIEWS
 @forbidden_view_config()
