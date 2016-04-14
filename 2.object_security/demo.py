@@ -15,6 +15,20 @@ from pyramid.security import remember
 from pyramid.view import forbidden_view_config
 from pyramid.view import view_config
 
+    """A 'group' object, which is *not* a string.
+
+    This can be used as a principal which is not possible for a user to fake.
+    """
+    
+    def __init__(self, groupname):
+        self.groupname = groupname
+        
+    def __eq__(self, other):
+        return (self.__class__ == other.__class__ and 
+                self.groupname == other.groupname)
+        
+    
+
 ### DEFINE MODEL
 class User(object):
     @property
@@ -31,12 +45,13 @@ class User(object):
     def check_password(self, passwd):
         return self.password == passwd
 
+
 class Page(object):
     @property
     def __acl__(self):
         return [
             (Allow, self.owner, 'edit'),
-            (Allow, 'g:editor', 'edit'),
+            (Allow, editorgroup, 'edit'),
         ]
 
     def __init__(self, title, uri, body, owner):
@@ -74,7 +89,6 @@ _make_demo_page('hello', owner='luser',
 ### MAP GROUPS TO PERMISSIONS
 class RootFactory(object):
     __acl__ = [
-        (Allow, 'g:admin', ALL_PERMISSIONS),
     ]
 
     def __init__(self, request):
@@ -82,7 +96,6 @@ class RootFactory(object):
 
 class UserFactory(object):
     __acl__ = [
-        (Allow, 'g:admin', ALL_PERMISSIONS),
     ]
 
     def __init__(self, request):
@@ -112,7 +125,6 @@ class PageFactory(object):
 def groupfinder(userid, request):
     user = USERS.get(userid)
     if user:
-        return ['g:%s' % g for g in user.groups]
 
 ### DEFINE VIEWS
 @forbidden_view_config()
@@ -317,6 +329,7 @@ def main(global_settings, **settings):
         authorization_policy=authz_policy,
         root_factory=RootFactory,
     )
+    config.include('pyramid_mako')
 
     config.add_route('home', '/')
     config.add_route('login', '/login')
